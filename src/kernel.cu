@@ -37,20 +37,18 @@ struct BigInt {
     }
 };
 
-template<int NUM_LIMBS, int ELEMENTS_PER_THREAD = 1>
+template<int NUM_LIMBS>
 __global__ void masked_xor(BigInt<NUM_LIMBS>* a, BigInt<NUM_LIMBS>* b, BigInt<NUM_LIMBS>* c, unsigned int num_elements) {
-    int base_idx = (blockIdx.x * blockDim.x + threadIdx.x) * ELEMENTS_PER_THREAD;
+    int idx = (blockIdx.x * blockDim.x + threadIdx.x);
     BigInt<NUM_LIMBS> local_result;
     
-    for (int i = 0; i < ELEMENTS_PER_THREAD; i++) {
-        int idx = base_idx + i;
-        if (idx < num_elements) {
-            BigInt<NUM_LIMBS> and_result = a[idx] & b[idx];
-            local_result = local_result ^ and_result;
-        }
+    if (idx < num_elements) {
+        BigInt<NUM_LIMBS> and_result = a[idx] & b[idx];
+        local_result = local_result ^ and_result;
     }
     
-    extern __shared__ BigInt<NUM_LIMBS> shared_data[];
+    extern __shared__ unsigned char shared_mem[];
+    BigInt<NUM_LIMBS>* shared_data = reinterpret_cast<BigInt<NUM_LIMBS>*>(shared_mem);
     shared_data[threadIdx.x] = local_result;
     
     __syncthreads();
@@ -67,19 +65,14 @@ __global__ void masked_xor(BigInt<NUM_LIMBS>* a, BigInt<NUM_LIMBS>* b, BigInt<NU
     }
 }
 
+extern "C" __global__ void masked_xor_64(BigInt<1>* a, BigInt<1>* b, BigInt<1>* c, unsigned int num_elements) {
+    masked_xor<1>(a, b, c, num_elements);
+}
+
+extern "C" __global__ void masked_xor_128(BigInt<2>* a, BigInt<2>* b, BigInt<2>* c, unsigned int num_elements) {
+    masked_xor<2>(a, b, c, num_elements);
+}
+
 extern "C" __global__ void masked_xor_256(BigInt<4>* a, BigInt<4>* b, BigInt<4>* c, unsigned int num_elements) {
-    masked_xor<4, 1>(a, b, c, num_elements);
-}
-
-// Additional variants with different elements per thread
-extern "C" __global__ void masked_xor_256_x2(BigInt<4>* a, BigInt<4>* b, BigInt<4>* c, unsigned int num_elements) {
-    masked_xor<4, 2>(a, b, c, num_elements);
-}
-
-extern "C" __global__ void masked_xor_256_x4(BigInt<4>* a, BigInt<4>* b, BigInt<4>* c, unsigned int num_elements) {
-    masked_xor<4, 4>(a, b, c, num_elements);
-}
-
-extern "C" __global__ void masked_xor_256_x8(BigInt<4>* a, BigInt<4>* b, BigInt<4>* c, unsigned int num_elements) {
-    masked_xor<4, 8>(a, b, c, num_elements);
+    masked_xor<4>(a, b, c, num_elements);
 }
