@@ -6,7 +6,7 @@ fn main() {
 }
 
 #[divan::bench(
-    args = [1024, 1024 * 1024, 1024 * 1024 * 1024, 10 * 1024 * 1024 * 1024],
+    args = [1024, 1024 * 1024, 1024 * 1024 * 1024],
     sample_count = 10
 )]
 fn chacha_rng(bencher: divan::Bencher, n: usize) {
@@ -14,7 +14,7 @@ fn chacha_rng(bencher: divan::Bencher, n: usize) {
         .with_inputs(|| {
             let device = CudaDevice::new(0).unwrap();
             let rng = ChaChaCudaRng::init(n, device.clone(), [0u32; 8]);
-            let buffer: CudaSlice<u32> = device.alloc_zeros(n).unwrap();
+            let buffer: CudaSlice<u32> = device.alloc_zeros(n * 4).unwrap();
             let stream = device.fork_default_stream().unwrap();
             (rng, buffer, device, stream, n)
         })
