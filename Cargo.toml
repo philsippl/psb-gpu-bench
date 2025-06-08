@@ -11,3 +11,7 @@ divan = "0.1.21"
 [[bench]]
 name = "masked_xor_bench"
 harness = false
+
+[[bench]]
+name = "chacha_bench"
+harness = false
